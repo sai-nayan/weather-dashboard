@@ -16,6 +16,7 @@ class BaseConfig:
     JSON_AS_ASCII = False
     TESTING = False
     DEBUG = False
+    RATE_LIMIT_DEFAULT = "100/hour"
 
 
 class DevelopmentConfig(BaseConfig):

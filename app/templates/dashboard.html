@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="page-title">Weather Intelligence Dashboard</h1>
+            <p class="page-subtitle">Real-time meteorological monitoring and automated temperature alert threshold tracking.</p>
+        </div>
+        <div class="system-status-badge">
+            <span class="pulse-dot"></span> System Live &bull; Open-Meteo Synced
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">Tracked Locations</div>
+            <div class="stat-value">{{ total_locations }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Alerts</div>
+            {% set active_alerts = locations | selectattr('alert', 'equalto', true) | list | length %}
+            <div class="stat-value {% if active_alerts > 0 %}stat-alert{% endif %}">{{ active_alerts }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Telemetry Status</div>
+            <div class="stat-value stat-ok">Healthy</div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Left: Tracked Location Cards -->
+        <div class="locations-section">
+            <h2 class="section-title">Saved Locations &amp; Real-Time Metrics</h2>
+
+            {% if not locations %}
+                <div class="empty-state">
+                    <div class="empty-icon">📍</div>
+                    <h3>No locations configured yet</h3>
+                    <p>Use the form on the right to track your first meteorological station.</p>
+                </div>
+            {% else %}
+                <div class="cards-list">
+                    {% for item in locations %}
+                        <div class="location-card {% if item.alert %}card-alert{% endif %}">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-city">{{ item.model.city_name }} <span class="card-country">({{ item.model.country }})</span></h3>
+                                    <div class="card-coords">Lat: {{ item.model.latitude }} &bull; Lon: {{ item.model.longitude }}</div>
+                                </div>
+                                <div class="card-badge {% if item.alert %}badge-warning{% else %}badge-normal{% endif %}">
+                                    {% if item.alert %}⚠️ ALERT: &ge; {{ item.model.temp_alert_threshold }}&deg;C{% else %}OK &lt; {{ item.model.temp_alert_threshold }}&deg;C{% endif %}
+                                </div>
+                            </div>
+
+                            <div class="weather-metrics">
+                                <div class="metric-item">
+                                    <span class="metric-val temp-val">{{ item.weather.temperature }}&deg;C</span>
+                                    <span class="metric-lbl">{{ item.weather.condition }}</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-val">{{ item.weather.humidity }}%</span>
+                                    <span class="metric-lbl">Humidity</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-val">{{ item.weather.wind_speed }} km/h</span>
+                                    <span class="metric-lbl">Wind Speed</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-val">{{ item.weather.apparent_temperature }}&deg;C</span>
+                                    <span class="metric-lbl">Feels Like</span>
+                                </div>
+                            </div>
+
+                            {% if item.model.notes %}
+                                <div class="card-notes">
+                                    <strong>Notes:</strong> {{ item.model.notes }}
+                                </div>
+                            {% endif %}
+
+                            <div class="card-footer">
+                                <span class="card-timestamp">Source: {{ item.weather.source }}</span>
+                                <form action="{{ url_for('locations.delete_location_form', location_id=item.model.id) }}" method="POST" onsubmit="return confirm('Remove {{ item.model.city_name }}?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Add Location Form -->
+        <div class="form-section">
+            <div class="form-card">
+                <h3 class="form-title">Add Monitored Location</h3>
+                <p class="form-desc">Define coordinates and threshold criteria for automated temperature alerting.</p>
+
+                <!-- Coordinate Presets -->
+                <div class="preset-buttons">
+                    <span class="preset-label">Quick Presets:</span>
+                    <button type="button" class="btn-preset" onclick="fillPreset('London', 'UK', 51.5074, -0.1278, 25.0)">London</button>
+                    <button type="button" class="btn-preset" onclick="fillPreset('New York', 'USA', 40.7128, -74.0060, 28.0)">New York</button>
+                    <button type="button" class="btn-preset" onclick="fillPreset('Tokyo', 'Japan', 35.6762, 139.6503, 27.0)">Tokyo</button>
+                    <button type="button" class="btn-preset" onclick="fillPreset('Hyderabad', 'India', 17.3850, 78.4867, 32.0)">Hyderabad</button>
+                </div>
+
+                <form action="{{ url_for('locations.create_location') }}" method="POST" class="add-location-form">
+                    <div class="form-group">
+                        <label for="city_name">City Name</label>
+                        <input type="text" id="city_name" name="city_name" class="form-control" required placeholder="e.g. San Francisco">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" name="country" class="form-control" required placeholder="e.g. United States">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-half">
+                            <label for="latitude">Latitude (&deg;N)</label>
+                            <input type="number" step="any" id="latitude" name="latitude" class="form-control" required placeholder="37.7749" min="-90" max="90">
+                        </div>
+                        <div class="form-group col-half">
+                            <label for="longitude">Longitude (&deg;E)</label>
+                            <input type="number" step="any" id="longitude" name="longitude" class="form-control" required placeholder="-122.4194" min="-180" max="180">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="temp_alert_threshold">Temp Alert Threshold (&deg;C)</label>
+                        <input type="number" step="0.5" id="temp_alert_threshold" name="temp_alert_threshold" class="form-control" required value="28.0">
+                        <small class="field-hint">Triggers warning status whenever ambient temp reaches or exceeds this value.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Station Notes (Optional)</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="e.g. Primary campus observatory station"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Save Location</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillPreset(city, country, lat, lon, threshold) {
+    document.getElementById('city_name').value = city;
+    document.getElementById('country').value = country;
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lon;
+    document.getElementById('temp_alert_threshold').value = threshold;
+}
+</script>
+{% endblock %}

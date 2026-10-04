@@ -16,6 +16,8 @@ class BaseConfig:
     JSON_AS_ASCII = False
     TESTING = False
     DEBUG = False
+    # Resolved: Default to 250 requests/hour with environment variable override
+    RATE_LIMIT_DEFAULT = os.environ.get("RATE_LIMIT", "250/hour")
 
 
 class DevelopmentConfig(BaseConfig):

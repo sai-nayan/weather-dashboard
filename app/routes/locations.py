@@ -41,8 +41,19 @@ def create_location():
     threshold_val = data.get("temp_alert_threshold", 30.0)
     notes = data.get("notes", "").strip()
 
-    if not city_name or not country or lat_val is None or lon_val is None:
-        return jsonify({"error": "Bad Request", "message": "city_name, country, latitude, and longitude are required"}), 400
+    if not city_name and (lat_val is None or lon_val is None):
+        return jsonify({"error": "Bad Request", "message": "City name or coordinates required"}), 400
+
+    # Auto-resolve coordinates and country if city name is provided
+    if city_name and (lat_val is None or lon_val is None or str(lat_val).strip() == "" or str(lon_val).strip() == ""):
+        geo_lat, geo_lon, geo_country = WeatherService.geocode_city(city_name)
+        lat_val = geo_lat
+        lon_val = geo_lon
+        if not country:
+            country = geo_country or "India"
+
+    if not country:
+        country = "Unknown"
 
     try:
         latitude = float(lat_val)

@@ -500,6 +500,28 @@ body {
     background-color: var(--border-color);
 }
 
+.btn-current-loc {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2));
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.btn-current-loc:hover {
+    background: var(--accent-blue);
+    color: #fff;
+}
+
+.loc-status-text {
+    font-size: 0.8rem;
+    color: var(--accent-blue);
+    background-color: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.65rem;
+    margin-bottom: 1rem;
+}
+
 /* Form Card */
 .form-card {
     background-color: var(--bg-card);

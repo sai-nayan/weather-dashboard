@@ -31,6 +31,42 @@ class WeatherService:
     """Service to fetch real-time weather metrics from Open-Meteo API with fallback."""
 
     BASE_URL = "https://api.open-meteo.com/v1/forecast"
+    GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
+
+    # Known fallback coordinates for immediate resolution
+    KNOWN_COORDINATES = {
+        "delhi": (28.6139, 77.2090, "India"),
+        "new delhi": (28.6139, 77.2090, "India"),
+        "gurgaon": (28.4595, 77.0266, "India"),
+        "gurugram": (28.4595, 77.0266, "India"),
+        "hyderabad": (17.3850, 78.4867, "India"),
+        "london": (51.5074, -0.1278, "United Kingdom"),
+        "new york": (40.7128, -74.0060, "United States"),
+        "tokyo": (35.6762, 139.6503, "Japan"),
+    }
+
+    @classmethod
+    def geocode_city(cls, city_name: str) -> tuple[float, float, str]:
+        """Resolve city name into (latitude, longitude, country)."""
+        clean_name = city_name.strip().lower()
+        if clean_name in cls.KNOWN_COORDINATES:
+            return cls.KNOWN_COORDINATES[clean_name]
+
+        # Check Open-Meteo Geocoding API
+        try:
+            params = {"name": city_name, "count": 1, "language": "en", "format": "json"}
+            resp = requests.get(cls.GEOCODING_URL, params=params, timeout=3.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results")
+                if results and len(results) > 0:
+                    first = results[0]
+                    return float(first["latitude"]), float(first["longitude"]), first.get("country", "")
+        except Exception:
+            pass
+
+        # Default fallback coordinates (Delhi) if completely unresolvable
+        return (28.6139, 77.2090, "India")
 
     @classmethod
     def get_weather(cls, latitude: float, longitude: float) -> Dict[str, Any]:

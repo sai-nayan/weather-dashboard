@@ -1,7 +1,7 @@
 """Web UI frontend route handlers."""
 
 from flask import Blueprint, render_template, session, redirect, url_for, request
-from app.models import User, FavoriteLocation
+from app.models import db, User, FavoriteLocation
 from app.services.weather_api import WeatherService
 
 web_bp = Blueprint("web", __name__)

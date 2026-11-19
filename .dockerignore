@@ -1,0 +1,66 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+wheels/
+
+# Virtual environments
+env/
+venv/
+.venv/
+ENV/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+reports/
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker files (don't copy into image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Database files (use volumes instead)
+*.db
+*.sqlite3
+instance/
+
+# Jenkins & CI
+Jenkinsfile
+*.zip
+
+# Documentation (not needed in image)
+docs/
+*.md
+!README.md
+
+# Environment files
+.env
+.env.*
+
+# Conda
+environment.yml
+
+# Misc
+collaborator-test.txt
+logs/

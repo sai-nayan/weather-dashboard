@@ -44,3 +44,10 @@ instance/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Docker persistent data
+logs/
+
+# Build artifacts
+*.zip
+reports/

@@ -1,0 +1,42 @@
+# ============================================================
+# Weather Dashboard — Docker Compose Configuration
+# ============================================================
+
+services:
+  weather-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weather-dashboard
+    ports:
+      - "5050:5050"
+    environment:
+      - FLASK_ENV=production
+      - PORT=5050
+      - SECRET_KEY=${SECRET_KEY:-super-secret-key-change-in-prod}
+      - DATABASE_URL=sqlite:////home/appuser/app/instance/weather.db
+      - GUNICORN_WORKERS=2
+      - GUNICORN_THREADS=4
+      - GUNICORN_TIMEOUT=120
+    volumes:
+      - weather-data:/home/appuser/app/instance
+      - weather-logs:/home/appuser/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    networks:
+      - weather-net
+
+networks:
+  weather-net:
+    driver: bridge
+
+volumes:
+  weather-data:
+    driver: local
+  weather-logs:
+    driver: local

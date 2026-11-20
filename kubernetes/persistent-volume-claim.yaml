@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: weather-dashboard-pvc
+  namespace: weather-dashboard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  volumeName: weather-dashboard-pv
+  resources:
+    requests:
+      storage: 1Gi

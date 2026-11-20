@@ -51,3 +51,6 @@ logs/
 # Build artifacts
 *.zip
 reports/
+
+# Kubernetes secrets
+kubernetes/secret.yaml

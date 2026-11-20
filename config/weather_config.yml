@@ -1,0 +1,11 @@
+application:
+  name: Weather Dashboard
+  environment: production
+  port: 5050
+
+database:
+  type: sqlite
+  path: instance/weather.db
+
+logging:
+  level: INFO

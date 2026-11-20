@@ -1,0 +1,40 @@
+
+---
+- name: Prepare Ubuntu hosts for Kubernetes
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+        state: present
+
+    - name: Create Kubernetes configuration directory
+      file:
+        path: /etc/kubernetes
+        state: directory
+        mode: '0755'
+
+    - name: Check if kubelet is installed
+      command: kubelet --version
+      register: kubelet_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display Kubernetes installation status
+      debug:
+        msg: >-
+          {% if kubelet_check.rc == 0 %}
+          Kubernetes is already installed: {{ kubelet_check.stdout }}
+          {% else %}
+          Kubernetes prerequisites prepared. Kubernetes components can be installed next.
+          {% endif %}

@@ -29,7 +29,7 @@ The **Weather Dashboard** is a cloud-native web application designed to demonstr
 | **Phase 2** | **Continuous Integration & Automated Testing** | Jenkins, Pytest | **Completed** |
 | **Phase 3** | **Containerization & CI/CD Pipeline** | Docker, Docker Compose, Jenkins | **Completed** |
 | **Phase 4** | **Container Orchestration & Scaling** | Kubernetes, Helm | **completed** |
-| **Phase 5** | **Configuration Management **| Ansible | **completed** |
+| **Phase 5** | **Configuration Management**| Ansible | **completed** |
 | **Phase 6** | Infrastructure as Code (IaC) | Terraform | Upcoming |
 | **Phase 7** | Application & Infrastructure Monitoring | Prometheus, Grafana | Upcoming |
 | **Phase 8** | Centralized Logging | Fluentd / ELK Stack | Upcoming |

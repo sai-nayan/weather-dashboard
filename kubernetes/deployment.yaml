@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-dashboard
+  namespace: weather-dashboard
+  labels:
+    app: weather-dashboard
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: weather-dashboard
+
+  template:
+    metadata:
+      labels:
+        app: weather-dashboard
+
+    spec:
+      securityContext:
+        fsGroup: 1000
+
+      # Fix persistent storage permissions before starting the app
+      initContainers:
+        - name: fix-storage-permissions
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /data && chmod -R 775 /data
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: weather-dashboard-storage
+              mountPath: /data
+
+      # Main application container
+      containers:
+        - name: weather-dashboard
+          image: anand4123/weather-dashboard:5
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 5050
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: weather-dashboard-config
+            - secretRef:
+                name: weather-dashboard-secret
+
+          volumeMounts:
+            - name: weather-dashboard-storage
+              mountPath: /app/instance
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      # Persistent storage
+      volumes:
+        - name: weather-dashboard-storage
+          persistentVolumeClaim:
+            claimName: weather-dashboard-pvc

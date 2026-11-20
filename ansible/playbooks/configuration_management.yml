@@ -1,0 +1,33 @@
+---
+- name: Configure Weather Dashboard application
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Ensure application configuration directory exists
+      file:
+        path: /workspace/config
+        state: directory
+        mode: '0755'
+
+    - name: Create application configuration file
+      copy:
+        dest: /workspace/config/weather_config.yml
+        content: |
+          application:
+            name: Weather Dashboard
+            environment: production
+            port: 5050
+
+          database:
+            type: sqlite
+            path: instance/weather.db
+
+          logging:
+            level: INFO
+        mode: '0644'
+
+    - name: Display configuration management status
+      debug:
+        msg: "Weather Dashboard configuration file created successfully."

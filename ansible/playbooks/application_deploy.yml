@@ -1,0 +1,38 @@
+---
+- name: Deploy Weather Dashboard using Ansible and Docker
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Build Weather Dashboard Docker image
+      command: docker build -t weather-dashboard-ansible:1 .
+      args:
+        chdir: /workspace
+
+    - name: Remove previous Ansible deployment container if it exists
+      command: docker rm -f weather-dashboard-ansible
+      register: remove_previous
+      failed_when: false
+      changed_when: remove_previous.rc == 0
+
+    - name: Deploy Weather Dashboard container
+      command: >-
+        docker run -d
+        --name weather-dashboard-ansible
+        --restart unless-stopped
+        -p 5052:5050
+        -e FLASK_ENV=production
+        -e PORT=5050
+        -e SECRET_KEY=ansible-lab-secret
+        -e DATABASE_URL=sqlite:////app/instance/weather.db
+        -v weather-ansible-data:/app/instance
+        weather-dashboard-ansible:1
+
+    - name: Verify deployed container is running
+      command: docker ps --filter name=weather-dashboard-ansible
+      register: deployment_status
+
+    - name: Display deployment status
+      debug:
+        msg: "{{ deployment_status.stdout }}"

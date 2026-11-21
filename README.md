@@ -30,7 +30,7 @@ The **Weather Dashboard** is a cloud-native web application designed to demonstr
 | **Phase 3** | **Containerization & CI/CD Pipeline** | Docker, Docker Compose, Jenkins | **Completed** |
 | **Phase 4** | **Container Orchestration & Scaling** | Kubernetes, Helm | **completed** |
 | **Phase 5** | **Configuration Management**| Ansible | **completed** |
-| **Phase 6** | Infrastructure as Code (IaC) | Terraform | Upcoming |
+| **Phase 6** | **Infrastructure as Code (IaC)** | Terraform | **Completed** |
 | **Phase 7** | Application & Infrastructure Monitoring | Prometheus, Grafana | Upcoming |
 | **Phase 8** | Centralized Logging | Fluentd / ELK Stack | Upcoming |
 | **Phase 9** | DevSecOps & Image Security | SonarQube, Trivy, RBAC | Upcoming |
@@ -172,6 +172,47 @@ The pipeline is configured as the **Weather-Dashboard-CI** job in Jenkins:
 3. Pipeline executes all 9 stages sequentially
 4. View results in Jenkins Blue Ocean or classic UI
 5. Application deployed at `http://localhost:5050`
+
+---
+
+## 🏗️ Phase 6: Infrastructure as Code (IaC) with Terraform
+
+Phase 6 provides complete Infrastructure as Code (IaC) automation via Terraform to provision application infrastructure deterministically across local and cloud environments:
+
+### Architecture
+
+```
+terraform/
+├── environments/
+│   ├── local/                      # Local Docker deployment environment
+│   │   ├── versions.tf             # Terraform & provider requirements
+│   │   ├── variables.tf            # Configurable inputs & defaults
+│   │   ├── terraform.tfvars        # Default parameter assignments
+│   │   ├── main.tf                 # Networks, volumes, image builds, container lifecycle
+│   │   └── outputs.tf              # Service endpoints & resource IDs
+│   └── aws/                        # Cloud production environment (AWS ECS Fargate)
+│       ├── versions.tf             # AWS provider settings
+│       ├── variables.tf            # VPC, subnets, sizing, and region parameters
+│       ├── main.tf                 # VPC, Subnets, ALB, ECS Cluster & Service definitions
+│       └── outputs.tf              # Load balancer DNS and application endpoints
+└── README.md                       # Comprehensive IaC guide
+```
+
+### Quick Commands
+
+```bash
+# Local Docker deployment with Terraform
+cd terraform/environments/local
+terraform init
+terraform validate
+terraform plan
+terraform apply -auto-approve
+
+# Cloud AWS validation
+cd ../aws
+terraform init -backend=false
+terraform validate
+```
 
 ---
 

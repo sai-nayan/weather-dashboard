@@ -1,10 +1,21 @@
 """Flask Application Factory and Blueprint Configuration."""
 
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, Response
 from app.models import db
 from config import config_by_name
+from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
+
+REQUEST_COUNT = Counter(
+    "weather_dashboard_requests_total",
+    "Total number of requests"
+)
+
+APP_UP = Gauge(
+    "weather_dashboard_up",
+    "Weather dashboard application status"
+)
 
 def create_app(config_name: str = None) -> Flask:
     """Application factory for the Weather Dashboard service."""
@@ -12,6 +23,12 @@ def create_app(config_name: str = None) -> Flask:
         config_name = os.environ.get("FLASK_ENV", "development")
 
     app = Flask(__name__)
+    @app.before_request
+    def count_request():
+        REQUEST_COUNT.inc()
+
+    APP_UP.set(1)
+    
     config_class = config_by_name.get(config_name, config_by_name["development"])
     app.config.from_object(config_class)
 
@@ -55,6 +72,12 @@ def create_app(config_name: str = None) -> Flask:
                 "memory_usage_mb": 42.5
             }
         }), 200
+    @app.route("/prometheus", methods=["GET"])
+    def prometheus_metrics():
+        return Response(
+            generate_latest(),
+            mimetype=CONTENT_TYPE_LATEST
+    )
 
     # Ensure tables exist
     with app.app_context():

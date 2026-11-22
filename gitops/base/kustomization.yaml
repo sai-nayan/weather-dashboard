@@ -3,10 +3,11 @@ kind: Kustomization
 
 namespace: weather-dashboard
 
-commonLabels:
-  app.kubernetes.io/name: weather-dashboard
-  app.kubernetes.io/part-of: weather-stack
-  app.kubernetes.io/managed-by: gitops-argocd
+labels:
+  - pairs:
+      app.kubernetes.io/name: weather-dashboard
+      app.kubernetes.io/part-of: weather-stack
+      app.kubernetes.io/managed-by: gitops-argocd
 
 resources:
   - deployment.yaml

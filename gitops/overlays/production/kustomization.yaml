@@ -3,7 +3,7 @@ kind: Kustomization
 
 namespace: weather-dashboard
 
-bases:
+resources:
   - ../../base
 
 namePrefix: prod-
@@ -12,11 +12,11 @@ images:
   - name: sai-nayan/weather-dashboard
     newTag: v1.0.0
 
-patchesStrategicMerge:
-  - |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
+patches:
+  - target:
+      kind: Deployment
       name: weather-dashboard
-    spec:
-      replicas: 3
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3

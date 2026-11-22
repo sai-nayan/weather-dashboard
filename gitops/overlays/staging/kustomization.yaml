@@ -3,7 +3,7 @@ kind: Kustomization
 
 namespace: weather-dashboard-staging
 
-bases:
+resources:
   - ../../base
 
 namePrefix: staging-
@@ -12,11 +12,11 @@ images:
   - name: sai-nayan/weather-dashboard
     newTag: v2.0.0-rc1
 
-patchesStrategicMerge:
-  - |-
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
+patches:
+  - target:
+      kind: Deployment
       name: weather-dashboard
-    spec:
-      replicas: 1
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

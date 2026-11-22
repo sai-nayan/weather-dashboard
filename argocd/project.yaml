@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: weather-dashboard
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: weather-dashboard-project
+spec:
+  description: "DevOps Capstone Weather Dashboard Project"
+  sourceRepos:
+    - "https://github.com/sai-nayan/weather-dashboard.git"
+    - "https://github.com/sai-nayan/*"
+  destinations:
+    - namespace: weather-dashboard
+      server: https://kubernetes.default.svc
+    - namespace: weather-dashboard-staging
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: ""
+      kind: PersistentVolume
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  roles:
+    - name: developer
+      description: "Developer permissions for weather dashboard sync"
+      policies:
+        - p, proj:weather-dashboard:developer, applications, get, weather-dashboard/*, allow
+        - p, proj:weather-dashboard:developer, applications, sync, weather-dashboard/*, allow

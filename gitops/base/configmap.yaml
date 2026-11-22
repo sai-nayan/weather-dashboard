@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weather-dashboard-config
+data:
+  FLASK_ENV: "production"
+  PORT: "5050"
+  DATABASE_URL: "sqlite:////app/instance/weather.db"

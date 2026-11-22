@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-dashboard-blue
+  namespace: weather-dashboard
+  labels:
+    app: weather-dashboard
+    version: blue
+    environment: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: weather-dashboard
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: weather-dashboard
+        version: blue
+        environment: production
+    spec:
+      securityContext:
+        fsGroup: 1000
+
+      initContainers:
+        - name: fix-storage-permissions
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /data && chmod -R 775 /data
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: weather-dashboard-storage
+              mountPath: /data
+
+      containers:
+        - name: weather-dashboard
+          image: sai-nayan/weather-dashboard:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5050
+              name: http
+          envFrom:
+            - configMapRef:
+                name: weather-dashboard-config
+            - secretRef:
+                name: weather-dashboard-secret
+          env:
+            - name: DEPLOYMENT_SLOT
+              value: "blue"
+            - name: APP_VERSION
+              value: "v1.0.0"
+          volumeMounts:
+            - name: weather-dashboard-storage
+              mountPath: /app/instance
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      volumes:
+        - name: weather-dashboard-storage
+          persistentVolumeClaim:
+            claimName: weather-dashboard-pvc

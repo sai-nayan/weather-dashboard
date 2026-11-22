@@ -28,14 +28,14 @@ The **Weather Dashboard** is a cloud-native web application designed to demonstr
 | **Phase 1** | **Version Control & Branching Strategy** | Git, GitHub | **Completed** |
 | **Phase 2** | **Continuous Integration & Automated Testing** | Jenkins, Pytest | **Completed** |
 | **Phase 3** | **Containerization & CI/CD Pipeline** | Docker, Docker Compose, Jenkins | **Completed** |
-| **Phase 4** | **Container Orchestration & Scaling** | Kubernetes, Helm | **completed** |
-| **Phase 5** | **Configuration Management**| Ansible | **completed** |
+| **Phase 4** | **Container Orchestration & Scaling** | Kubernetes, Helm | **Completed** |
+| **Phase 5** | **Configuration Management**| Ansible | **Completed** |
 | **Phase 6** | **Infrastructure as Code (IaC)** | Terraform | **Completed** |
-| **Phase 7** | Application & Infrastructure Monitoring | Prometheus, Grafana | Upcoming |
-| **Phase 8** | Centralized Logging | Fluentd / ELK Stack | Upcoming |
-| **Phase 9** | DevSecOps & Image Security | SonarQube, Trivy, RBAC | Upcoming |
-| **Phase 10** | Zero-Downtime Deployment Strategy | Blue-Green / Canary | Upcoming |
-| **Phase 11** | GitOps Automated Delivery | ArgoCD / FluxCD | Upcoming |
+| **Phase 7** | **Application & Infrastructure Monitoring** | Prometheus, ServiceMonitor | **Completed** |
+| **Phase 8** | **Centralized Logging** | Fluentd DaemonSet | **Completed** |
+| **Phase 9** | **DevSecOps & Image Security** | Non-root User, Secrets, RBAC | **Completed** |
+| **Phase 10** | **Zero-Downtime Deployment Strategy** | Blue-Green & Canary (Argo Rollouts) | **Completed** |
+| **Phase 11** | **GitOps Automated Delivery** | ArgoCD, Kustomize, Helm Chart | **Completed** |
 
 ---
 
@@ -216,6 +216,82 @@ terraform validate
 
 ---
 
+## 🔄 Phase 10: Zero-Downtime Deployment Strategy
+
+Phase 10 eliminates deployment downtime through atomic traffic cutovers and progressive canary delivery:
+
+### Architecture
+
+```
+                 Active Traffic (Port 80 / NodePort 30080)
+                                    │
+                  ┌─────────────────┴─────────────────┐
+                  ▼                                   ▼
+        ┌───────────────────┐               ┌───────────────────┐
+        │   version: blue   │               │  version: green   │
+        │  (v1.0.0 Active)  │               │ (v2.0.0 Candidate)│
+        └───────────────────┘               └───────────────────┘
+                  ▲                                   ▲
+                  └─────────────────┬─────────────────┘
+                                    │
+                Preview Traffic (Port 8080 / NodePort 30081)
+```
+
+- **Blue-Green Strategy**: Production (`service-active.yaml`) directs live requests to the active version. Candidate releases deploy in parallel to the preview service (`service-preview.yaml`) for validation before atomic cutover.
+- **Canary Strategy**: Argo Rollouts specification (`kubernetes/canary/rollout-canary.yaml`) supports multi-step weighted traffic splits (20% ➔ 50% ➔ 80% ➔ 100%) with automated pause intervals.
+
+### Zero-Downtime Switch Execution
+
+```bash
+# Automated health-checked Blue-Green cutover
+./scripts/switch-blue-green.sh       # Linux / macOS
+.\scripts\switch-blue-green.ps1      # Windows PowerShell
+
+# Instant rollback if required
+kubectl patch service weather-dashboard-active -n weather-dashboard \
+  -p '{"spec":{"selector":{"version":"blue"}}}'
+```
+
+---
+
+## 🐙 Phase 11: GitOps Automated Delivery with ArgoCD
+
+Phase 11 manages the entire deployment lifecycle declaratively through GitOps principles:
+
+```
+  Developer Push ──► GitHub (Single Source of Truth)
+                          │
+                          ▼
+                    ArgoCD Server (argocd namespace)
+                          │
+            ┌─────────────┴─────────────┐
+            ▼                           ▼
+    Auto-Sync / Self-Heal       Prune Stale Resources
+            │                           │
+            └─────────────┬─────────────┘
+                          ▼
+            Target Cluster (weather-dashboard namespace)
+```
+
+- **ArgoCD Declarative App**: [`argocd/application.yaml`](argocd/application.yaml) enforces continuous automated reconciliation with `prune: true` and `selfHeal: true`.
+- **RBAC & Project Scoping**: [`argocd/project.yaml`](argocd/project.yaml) isolates allowed destination namespaces and repository sources.
+- **Kustomize Overlays**: Environment separation between [`gitops/overlays/staging/`](gitops/overlays/staging/) and [`gitops/overlays/production/`](gitops/overlays/production/).
+- **Helm Chart (Bonus Milestone)**: Reusable, parameterizable Helm v3 chart with Horizontal Pod Autoscaler (HPA) at [`helm/weather-dashboard/`](helm/weather-dashboard/).
+
+### Quick Commands
+
+```bash
+# Apply ArgoCD Project & Application
+kubectl apply -f argocd/project.yaml
+kubectl apply -f argocd/application.yaml
+
+# Manual trigger / sync status check
+argocd app get weather-dashboard-production
+argocd app sync weather-dashboard-production
+```
+
+---
+
 ## 🚀 Quickstart (Local Development)
 
 ### Prerequisites
@@ -269,8 +345,12 @@ pytest -v --cov=app tests/
 
 ```
 weather-dashboard/
+├── ansible/                      # Ansible automation playbooks (Phase 5)
+│   ├── Dockerfile
+│   ├── inventory.ini
+│   └── playbooks/
 ├── app/                          # Flask application package
-│   ├── __init__.py               # Application factory
+│   ├── __init__.py               # Application factory & Prometheus exporter
 │   ├── models.py                 # SQLAlchemy models (User, FavoriteLocation)
 │   ├── routes/
 │   │   ├── auth.py               # Authentication endpoints
@@ -278,28 +358,53 @@ weather-dashboard/
 │   │   ├── weather.py            # Weather API endpoints
 │   │   └── web.py                # Web UI routes
 │   ├── services/
-│   │   └── weather_api.py        # Weather API client service
+│   │   └── weather_api.py        # Weather API client & offline fallback engine
 │   ├── static/css/style.css      # Glassmorphic UI stylesheet
 │   └── templates/                # Jinja2 HTML templates
-│       ├── base.html
-│       ├── dashboard.html
-│       ├── login.html
-│       └── register.html
-├── tests/                        # Pytest test suite
+├── argocd/                       # ArgoCD GitOps Custom Resources (Phase 11)
+│   ├── application.yaml          # Declarative Application with auto-sync & self-heal
+│   └── project.yaml              # AppProject with scoped RBAC permissions
+├── gitops/                       # Kustomize GitOps manifests (Phase 11)
+│   ├── base/                     # Core base primitives
+│   └── overlays/                 # Environment overlays (staging, production)
+├── helm/                         # Helm v3 packaging & HPA (Bonus Milestone)
+│   └── weather-dashboard/
+├── kubernetes/                   # Kubernetes cluster manifests (Phase 4 & 10)
+│   ├── blue-green/               # Blue-Green dual deployments & services
+│   ├── canary/                   # Argo Rollouts progressive canary specification
+│   ├── configmap.yaml
+│   ├── deployment.yaml
+│   ├── namespace.yaml
+│   ├── persistent-volume.yaml
+│   ├── persistent-volume-claim.yaml
+│   ├── secret.example.yaml
+│   ├── service.yaml
+│   └── servicemonitor.yaml       # CoreOS Prometheus monitoring (Phase 7)
+├── scripts/                      # Operational automation & cutover scripts
+│   ├── switch-blue-green.sh      # Bash zero-downtime cutover script
+│   └── switch-blue-green.ps1     # PowerShell zero-downtime cutover script
+├── terraform/                    # Infrastructure as Code (Phase 6)
+│   └── environments/
+│       ├── local/                # Local Docker provider IaC
+│       └── aws/                  # AWS ECS Fargate + ALB production IaC
+├── tests/                        # Pytest test suite (Phase 2)
 │   ├── conftest.py               # Fixtures and test configuration
 │   ├── test_auth.py              # Authentication tests
 │   ├── test_health.py            # Health/metrics endpoint tests
 │   ├── test_locations.py         # Location CRUD tests
 │   └── test_weather.py           # Weather API tests
 ├── docs/
-│   └── API_REFERENCE.md          # REST API documentation
+│   ├── API_REFERENCE.md          # REST API documentation
+│   └── PHASE_10_11_GITOPS_DEPLOYMENT.md # Deployment & GitOps operations guide
+├── fluentd-config.yaml           # Fluentd centralized logging configuration (Phase 8)
+├── fluentd-daemonset.yaml        # Fluentd Kubernetes DaemonSet (Phase 8)
 ├── config.py                     # Environment-specific configs
 ├── run.py                        # Application entry point
 ├── requirements.txt              # Python dependencies
-├── Dockerfile                    # Production Docker image
-├── docker-compose.yml            # Docker Compose orchestration
+├── Dockerfile                    # Production Docker image (Phase 3 & 9)
+├── docker-compose.yml            # Docker Compose orchestration (Phase 3)
 ├── .dockerignore                 # Docker build exclusions
-├── Jenkinsfile                   # CI/CD pipeline definition
+├── Jenkinsfile                   # CI/CD pipeline definition (Phase 2 & 3)
 ├── environment.yml               # Conda environment spec
 ├── .gitignore                    # Git exclusions
 └── README.md                     # This file

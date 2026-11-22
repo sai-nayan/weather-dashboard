@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: weather-dashboard-production
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: weather-dashboard
+    app.kubernetes.io/part-of: devops-capstone
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: weather-dashboard
+
+  source:
+    repoURL: https://github.com/sai-nayan/weather-dashboard.git
+    targetRevision: HEAD
+    path: gitops/overlays/production
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: weather-dashboard
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

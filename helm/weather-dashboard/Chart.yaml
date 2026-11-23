@@ -1,0 +1,13 @@
+apiVersion: v2
+name: weather-dashboard
+description: Helm chart for Cloud-Native Weather Dashboard Capstone
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - weather
+  - devops
+  - capstone
+  - kubernetes
+maintainers:
+  - name: Sai Nayan

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: weather-dashboard
+  template:
+    metadata:
+      labels:
+        app: weather-dashboard
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: fix-storage-permissions
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /data && chmod -R 775 /data
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: weather-dashboard-storage
+              mountPath: /data
+      containers:
+        - name: weather-dashboard
+          image: sai-nayan/weather-dashboard:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5050
+              name: http
+          envFrom:
+            - configMapRef:
+                name: weather-dashboard-config
+          volumeMounts:
+            - name: weather-dashboard-storage
+              mountPath: /app/instance
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: weather-dashboard-storage
+          persistentVolumeClaim:
+            claimName: weather-dashboard-pvc

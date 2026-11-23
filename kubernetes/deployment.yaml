@@ -19,6 +19,7 @@ spec:
         app: weather-dashboard
 
     spec:
+      serviceAccountName: weather-dashboard-sa
       securityContext:
         fsGroup: 1000
 

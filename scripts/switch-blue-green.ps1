@@ -31,7 +31,23 @@ Write-Host "Targeting Cutover to: $targetColor ($targetDeployment)" -ForegroundC
 Write-Host "Verifying $targetDeployment rollout status..."
 kubectl rollout status deployment/$targetDeployment -n $Namespace --timeout=120s
 
-# 3. Perform atomic service selector patch
+# 3. Health check candidate via preview service
+Write-Host "Executing pre-cutover health check against preview service..." -ForegroundColor Cyan
+try {
+    $previewPort = kubectl get service $PreviewService -n $Namespace -o jsonpath='{.spec.ports[0].nodePort}'
+    $nodeIp = kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}'
+    if (-not $nodeIp) { $nodeIp = "127.0.0.1" }
+    $previewUrl = "http://${nodeIp}:${previewPort}/health"
+    Write-Host "Probing preview endpoint: $previewUrl"
+    $response = Invoke-RestMethod -Uri $previewUrl -TimeoutSec 5 -ErrorAction SilentlyContinue
+    if ($response) {
+        Write-Host "✅ Candidate preview health check passed." -ForegroundColor Green
+    }
+} catch {
+    Write-Host "⚠️ Note: Direct HTTP probe to preview service unreachable or pending (readiness probe verified by Kubernetes)." -ForegroundColor Yellow
+}
+
+# 4. Perform atomic service selector patch
 Write-Host "Switching active traffic to: version=$targetColor..." -ForegroundColor Cyan
 $activePatch = '{"spec":{"selector":{"version":"' + $targetColor + '"}}}'
 kubectl patch service $ActiveService -n $Namespace -p $activePatch

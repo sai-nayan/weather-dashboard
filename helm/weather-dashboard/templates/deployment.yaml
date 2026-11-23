@@ -60,5 +60,9 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: storage
+          {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "weather-dashboard.fullname" . }}-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

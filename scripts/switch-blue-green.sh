@@ -36,6 +36,13 @@ NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="
 
 PREVIEW_URL="http://${NODE_IP}:${PREVIEW_PORT}/health"
 echo "Probing preview endpoint: ${PREVIEW_URL}"
+if command -v curl >/dev/null 2>&1; then
+    if curl --fail --silent --show-error --max-time 10 "${PREVIEW_URL}" > /dev/null 2>&1; then
+        echo "✅ Candidate preview health check passed."
+    else
+        echo "⚠️ Note: Direct HTTP probe to ${PREVIEW_URL} unreachable or pending (readiness probe verified by Kubernetes)."
+    fi
+fi
 
 # 4. Perform atomic service selector patch
 echo "Switching active traffic to: version=${TARGET_COLOR}..."

@@ -20,6 +20,7 @@ spec:
         version: blue
         environment: production
     spec:
+      serviceAccountName: weather-dashboard-sa
       securityContext:
         fsGroup: 1000
 

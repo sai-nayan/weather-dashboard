@@ -20,16 +20,24 @@ data:
       </parse>
     </source>
 
+    # Primary match: Forward to Elasticsearch if available, otherwise mirror to stdout
     <match kubernetes.**>
-      @type elasticsearch
-      host elasticsearch
-      port 9200
-      logstash_format true
-      logstash_prefix kubernetes
-      include_tag_key true
-      tag_key @log_name
-
-      <buffer>
-        flush_interval 5s
-      </buffer>
+      @type copy
+      <store>
+        @type stdout
+      </store>
+      <store>
+        @type elasticsearch
+        @id elasticsearch_output
+        host "#{ENV['ELASTICSEARCH_HOST'] || 'elasticsearch'}"
+        port "#{ENV['ELASTICSEARCH_PORT'] || '9200'}"
+        logstash_format true
+        logstash_prefix kubernetes
+        include_tag_key true
+        tag_key @log_name
+        <buffer>
+          flush_interval 5s
+          retry_max_interval 30s
+        </buffer>
+      </store>
     </match>

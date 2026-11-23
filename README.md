@@ -31,9 +31,9 @@ The **Weather Dashboard** is a cloud-native web application designed to demonstr
 | **Phase 4** | **Container Orchestration & Scaling** | Kubernetes, Helm | **Completed** |
 | **Phase 5** | **Configuration Management**| Ansible | **Completed** |
 | **Phase 6** | **Infrastructure as Code (IaC)** | Terraform | **Completed** |
-| **Phase 7** | **Application & Infrastructure Monitoring** | Prometheus, ServiceMonitor | **Completed** |
-| **Phase 8** | **Centralized Logging** | Fluentd DaemonSet | **Completed** |
-| **Phase 9** | **DevSecOps & Image Security** | Non-root User, Secrets, RBAC | **Completed** |
+| **Phase 7** | **Application & Infrastructure Monitoring** | Prometheus, Grafana, ServiceMonitor | **Completed** |
+| **Phase 8** | **Centralized Logging** | Fluentd DaemonSet, ClusterRole RBAC | **Completed** |
+| **Phase 9** | **DevSecOps & Image Security** | Trivy, Bandit, Non-root User, K8s RBAC | **Completed** |
 | **Phase 10** | **Zero-Downtime Deployment Strategy** | Blue-Green & Canary (Argo Rollouts) | **Completed** |
 | **Phase 11** | **GitOps Automated Delivery** | ArgoCD, Kustomize, Helm Chart | **Completed** |
 
@@ -213,6 +213,57 @@ cd ../aws
 terraform init -backend=false
 terraform validate
 ```
+
+---
+
+## 📈 Phase 7: Application & Infrastructure Monitoring
+
+Phase 7 delivers real-time telemetry, service-level indicators (SLIs), and visual dashboards:
+
+- **Application Telemetry**: Built-in Prometheus instrumentation exporting live request counts (`weather_dashboard_requests_total`) and health status (`weather_dashboard_up`) at `/prometheus`.
+- **Prometheus ServiceMonitor**: [`kubernetes/servicemonitor.yaml`](kubernetes/servicemonitor.yaml) / [`kubernetes/monitoring/servicemonitor.yaml`](kubernetes/monitoring/servicemonitor.yaml) targets port `5050` with a 15-second scrape interval.
+- **Standalone Cluster Deployment**: [`kubernetes/monitoring/prometheus-standalone.yaml`](kubernetes/monitoring/prometheus-standalone.yaml) allows running Prometheus on any lightweight Kubernetes cluster (Minikube, Kind, k3s) without CRD prerequisites.
+- **Grafana Telemetry Dashboard**: Pre-configured JSON dashboard at [`monitoring/grafana/dashboards/weather-dashboard-overview.json`](monitoring/grafana/dashboards/weather-dashboard-overview.json) visualizing request throughput, error rates, and system uptime.
+- **Docker Compose Monitoring Profile**: Run Prometheus and Grafana locally with one command:
+  ```bash
+  docker compose --profile monitoring up -d
+  ```
+
+---
+
+## 📜 Phase 8: Centralized Logging with Fluentd
+
+Phase 8 provides cluster-wide log aggregation and streaming:
+
+- **DaemonSet & Log Collector**: [`kubernetes/logging/fluentd-daemonset.yaml`](kubernetes/logging/fluentd-daemonset.yaml) deploys Fluentd across all worker nodes to capture container stdout/stderr from `/var/log/containers/*.log`.
+- **Cluster RBAC**: [`kubernetes/logging/fluentd-rbac.yaml`](kubernetes/logging/fluentd-rbac.yaml) provisions dedicated `ServiceAccount`, `ClusterRole`, and `ClusterRoleBinding` granting read access to pod metadata.
+- **Multi-Store ConfigMap**: [`kubernetes/logging/fluentd-config.yaml`](kubernetes/logging/fluentd-config.yaml) streams logs to Elasticsearch (`9200`) with stdout mirroring for immediate diagnostics.
+- **Deployment Command**:
+  ```bash
+  kubectl apply -f kubernetes/logging/namespace.yaml
+  kubectl apply -f kubernetes/logging/fluentd-rbac.yaml
+  kubectl apply -f kubernetes/logging/fluentd-config.yaml
+  kubectl apply -f kubernetes/logging/fluentd-daemonset.yaml
+  ```
+
+---
+
+## 🔒 Phase 9: DevSecOps & Image Security
+
+Phase 9 integrates defense-in-depth security gates across code, containers, and Kubernetes:
+
+- **Kubernetes Least-Privilege RBAC**: Dedicated [`kubernetes/rbac.yaml`](kubernetes/rbac.yaml) isolates pod access:
+  - `ServiceAccount: weather-dashboard-sa`
+  - `Role: weather-dashboard-role` (read-only ConfigMaps/Secrets, no cluster escalation)
+  - `RoleBinding: weather-dashboard-rolebinding`
+- **Container Hardening**: Unprivileged execution (`USER appuser`, UID 1000) with `fsGroup: 1000` volume ownership in [`Dockerfile`](Dockerfile).
+- **Automated Security Scan Scripts**: Cross-platform script auditing secret leaks, Python SAST (Bandit), and container CVEs (Trivy):
+  ```bash
+  ./scripts/security-scan.sh       # Linux / macOS
+  .\scripts\security-scan.ps1      # Windows PowerShell
+  ```
+- **CI/CD Security Stages**: [`Jenkinsfile`](Jenkinsfile) integrates automated Bandit SAST and Trivy container vulnerability scanning before deployment.
+- **Runbook**: See [docs/PHASE_9_DEVSECOPS_SECURITY.md](docs/PHASE_9_DEVSECOPS_SECURITY.md) for full architecture and compliance details.
 
 ---
 

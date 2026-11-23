@@ -16,6 +16,7 @@ spec:
       labels:
         {{- include "weather-dashboard.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name | default (include "weather-dashboard.fullname" .) }}
       securityContext:
         fsGroup: 1000
       initContainers:
